@@ -27,7 +27,7 @@ print(f"Time taken: {c_time}")
 print("--------------------------------------------------")
 
 #Quantum Search
-print("Grovers Algorithm")
+print("Grover's Algorithm")
 
 def phase_oracle(num_qubits, target_index):
     qc = QuantumCircuit(num_qubits)
@@ -39,7 +39,6 @@ def phase_oracle(num_qubits, target_index):
     qc.mcx(list(range(num_qubits - 1)), num_qubits - 1)
     qc.h(num_qubits - 1)
 
-    # Undo X-gates to restore state
     for i, bit in enumerate(bin_target):
         if bit == '0':
             qc.x(i)
@@ -68,3 +67,16 @@ for _ in range(iterations):
     qc.append(oracle_gate, range(num_qubits))
     qc.append(diffuser_gate, range(num_qubits))
 qc.measure(range(num_qubits), range(num_qubits))
+
+q_start = time.perf_counter()
+sim = AerSimulator()
+compiled_circuit = transpile(qc, sim)
+job = sim.run(compiled_circuit, shots=1024)
+result = job.result()
+counts = result.get_counts()
+q_end = time.perf_counter()
+q_time = q_end - q_start
+
+measured_bin = max(counts, key=counts.get)
+print(f"Confidence: {counts.get(measured_bin)}/1024")
+print(f"Time taken: {q_time:.6f} seconds")
