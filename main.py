@@ -1,5 +1,5 @@
 from qiskit_aer import AerSimulator
-from qiskit.circuit import QuantumCircuit
+from qiskit import QuantumCircuit, transpile
 import numpy as np
 import time
 
@@ -23,4 +23,20 @@ for i in range(len(dataset)):
 c_end= time.perf_counter()
 c_time = c_end - c_start
 print(f"Time taken: {c_time}")
+
 print("--------------------------------------------------")
+
+#Quantum Search
+print("Grovers Algorithm")
+
+def grovers(qc, dataset, target_index):
+    for i in range(num_qubits):
+        qc.h(i)
+
+    for i in range(num_qubits):
+        if (target_index >>(num_qubits-1-i)) & 1:
+            qc.x(i)
+    qc.h(*range(num_qubits))
+    qc.append(grovers, qubits=range(num_qubits))
+    qc.h(*range(num_qubits), range(num_qubits))
+    return qc
