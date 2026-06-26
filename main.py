@@ -29,14 +29,42 @@ print("--------------------------------------------------")
 #Quantum Search
 print("Grovers Algorithm")
 
-def grovers(qc, dataset, target_index):
-    for i in range(num_qubits):
-        qc.h(i)
-
-    for i in range(num_qubits):
-        if (target_index >>(num_qubits-1-i)) & 1:
+def phase_oracle(num_qubits, target_index):
+    qc = QuantumCircuit(num_qubits)
+    bin_target = format(target_index, f'0{num_qubits}b')
+    for i, bit in enumerate(bin_target):
+        if bit == '0':
             qc.x(i)
-    qc.h(*range(num_qubits))
-    qc.append(grovers, qubits=range(num_qubits))
-    qc.h(*range(num_qubits), range(num_qubits))
-    return qc
+    qc.h(num_qubits - 1)
+    qc.mcx(list(range(num_qubits - 1)), num_qubits - 1)
+    qc.h(num_qubits - 1)
+
+    # Undo X-gates to restore state
+    for i, bit in enumerate(bin_target):
+        if bit == '0':
+            qc.x(i)
+    return qc.to_gate(label='Oracle')
+
+def diffuser(num_qubits):
+    qc = QuantumCircuit(num_qubits)
+    qc.h(range(num_qubits))
+    qc.x(range(num_qubits))
+    # Multi-controlled Z gate
+    qc.h(num_qubits - 1)
+    qc.mcx(list(range(num_qubits - 1)), num_qubits - 1)
+    qc.h(num_qubits - 1)
+    qc.x(range(num_qubits))
+    qc.h(range(num_qubits))
+    return qc.to_gate(label="Diffuser")
+
+qc = QuantumCircuit(num_qubits, num_qubits)
+qc.h(range(num_qubits))
+iterations = int(np.floor(np.pi/4*np.sqrt(N)))
+
+oracle_gate = phase_oracle(num_qubits, target_index)
+diffuser_gate = diffuser(num_qubits)
+
+for _ in range(iterations):
+    qc.append(oracle_gate, range(num_qubits))
+    qc.append(diffuser_gate, range(num_qubits))
+qc.measure(range(num_qubits), range(num_qubits))
